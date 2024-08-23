@@ -10,3 +10,10 @@ class CurveOpts(str,Enum):
     # sliding
     SIE = "Sliding interface energy (sie)"
     TE = "Total energy (te)"
+    
+class DeformOpts(str,Enum):
+    D = "Displacements"
+    A = "Accelerations"
+    V = "Velocities"
+    
+    
