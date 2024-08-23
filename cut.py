@@ -17,13 +17,6 @@ def get_partition_indices(filename,deck,n):
     base_size, remainder = divmod(len(displa), n)
     indices = [(i + 1) * base_size + min(i, remainder) - 1 for i in range(n)]
     return indices
-
-
-def clear():
-    # delete states
-    m = models.Model(0)
-    res = m.get_current_resultset()
-    res.delete()
     
     
 def loaded_results():
@@ -63,7 +56,7 @@ def save_plot():
 
 if __name__ == "__main__":
     os.system('cls')
-    # dir = get_current_model_dir()
+    dir = get_current_model_dir()
+    print(dir)
     # loaded_results()
     # save_plot(dir)
-    clear()
