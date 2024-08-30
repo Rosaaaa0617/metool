@@ -1,23 +1,17 @@
 import os
-import datetime
-
-def subdirs_in_path(path:str):
-    contents = os.listdir(path) # all files + directors in total
-    subdirs = [f for f in contents if os.path.isdir(os.path.join(path, f))] # pick directors in total
-    return subdirs
-
+import datetime,helpers
 
 
 if __name__ == "__main__":
 
     folder_path = r'Z:\cae_jobs\sb'
-    subdirs = subdirs_in_path(folder_path)
+    subdirs = helpers.subdirs_in_path(folder_path)
 
     date_to_delete = datetime.date(2024, 8, 23)
 
     for subdir in subdirs:
         s_path = os.path.join(folder_path,subdir)
-        cars = subdirs_in_path(s_path)
+        cars = helpers.subdirs_in_path(s_path)
         for car in cars:
             path = os.path.join(s_path,car)
             
