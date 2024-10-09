@@ -45,6 +45,17 @@ def save_win_plot(win_name:str,filename:str):
     win.save_image(filename)
     print("Saving file", filename)
 
+
+def subdirs_in_path(path:str):
+    '''
+    return List[director name]
+    '''
+    contents = os.listdir(path) # all files + directors in total
+    subdirs = [f for f in contents if os.path.isdir(os.path.join(path, f))] # pick directors in total
+    return subdirs
+
+
 if __name__ == "__main__":
+    NewScript()
     nog = "thx to ansa's vfs, need run this script before run anything in examples"
     print(nog)
