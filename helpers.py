@@ -36,9 +36,9 @@ def axis_title(win_name:str,xaxis_title:str,yaxis_title:str):
 
 def get_current_model_dir():
     models = utils.get_models('all')
-    d3plot = models[0].name
+    dir = models[0].name
         
-    return os.path.dirname(d3plot)
+    return os.path.dirname(dir)
 
 def save_win_plot(win_name:str,filename:str):
     win = windows.Window(name=win_name,page_id=0)
@@ -53,6 +53,24 @@ def subdirs_in_path(path:str):
     contents = os.listdir(path) # all files + directors in total
     subdirs = [f for f in contents if os.path.isdir(os.path.join(path, f))] # pick directors in total
     return subdirs
+
+
+def reload():
+    models = utils.get_models('all')
+    d3plot = models[0].name
+            
+    utils.MetaCommand('window active MetaPost')
+    utils.MetaCommand(f'read geom Dyna3d "{d3plot}"')
+    utils.MetaCommand(f'read dis Dyna3d "{d3plot}" all Displacements')
+
+def save_gif_via_view(dir:str,view:str):
+    utils.MetaCommand(f'view default {view}')
+    
+    # save gif
+    name = f"pre view {view}"
+    out = os.path.join(dir,name + '.gif')
+    utils.MetaCommand('animation for')
+    utils.MetaCommand(f'record movie forward duration 3.76 gif "{out}"')
 
 
 if __name__ == "__main__":
