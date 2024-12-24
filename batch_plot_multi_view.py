@@ -1,21 +1,10 @@
 import shutil,os,meta
 from meta import results, utils, windows, plot2d, models, toolbars
 from enum import Enum
+from typing import Tuple, List
 
-def new_script():
-    utils.MetaCommand('window clearcreate 3d keepses')
-    utils.MetaCommand('report clear all')
-    utils.MetaCommand('spreadsheet clearall')
-    utils.MetaCommand('spreadsheet windows deleteall')
-
-
-class CurveOpts(str,Enum):
-    KE = "Kinetic energy (ke)"
-    IE = "Internal energy (ie)"
-    HE = "Hourglass energy (he)"
-    # sliding
-    SIE = "Sliding interface energy (sie)"
-    TE = "Total energy (te)"
+import helpers
+from metaLiteral import *
 
 
 def plot_energy(source_folder):
@@ -45,20 +34,15 @@ def plot_energy(source_folder):
         cur.set_line_width(2)
     
     # set axis title
-    yaxis = plot2d.PlotAxis(id=0, type="yaxis", plot_id=0, window_name=window_name, page_id=0)
-    title = "Energy"
-    yaxis.set_title(title)
-    xaxis = plot2d.PlotAxis(id=0, type="xaxis", plot_id=0, window_name=window_name, page_id=0)
-    title = "Time"
-    xaxis.set_title(title)
+    helpers.axis_title(window_name,"Time","Energy")
     
     # output window
-    utils.MetaCommand(f'write jpeg "{output}" 85')
+    utils.MetaCommand(f'write jpeg "{output}" 100')
     
     
 def get_partition_states(filename,deck,n):
     all_types = results.DeformationTypes(filename, deck)
-    print('----------',len(all_types))
+    print('----------',len(all_types),'states')
     if len(all_types) == 0 :
         indices = [0]
     else:
@@ -74,13 +58,16 @@ def loaded_results(d3plot,n):
     deck = "LSDYNA"
     r = models.LoadModel(window_name, d3plot, deck)
             
-    # get the total states
-    indices = get_partition_states(d3plot,deck,n)
-    print(indices)
-    
+    if n == 0:
+        states = '0'
+    else:
+        # get the total states
+        indices = get_partition_states(d3plot,deck,n)
+        print(indices)
+        states = indices
+        
     # plot results
     model_id = 0
-    states = indices
     data_scalar = 'Displacements'
     results.LoadDeformations(model_id, d3plot, deck, str(states), data_scalar)
 
@@ -100,7 +87,24 @@ def save_metapost(source_folder,view:str):
     print('states have been saved')
 
 
+def save_metapost_bestview(source_folder):
+    win = windows.Window(name="MetaPost", page_id=0)
+    m = models.Model(0)
+    all_res = m.get_resultsets()
+    win.set_current_resultset(m, all_res[0])
+    
+    utils.MetaCommand(f'view set -2918.98,-1552.13,527.816,-755.179,-3763.01,-565.617,0.314816,-0.155008,0.93641,-755.179,-3763.01,-565.617,-168874,175437,28,0')
+    file = os.path.join(source_folder,f'best view 1.png')
+    win.save_image(file)
+    
+    utils.MetaCommand(f'view set -4045.55,-2001.25,423.33,1954.29,3998.52,-4474.84,0.35352,0.353517,0.866054,1954.29,3998.52,-4474.84,-104973,124568,28,0')
+    file = os.path.join(source_folder,f'best view 2.png')
+    win.save_image(file)
+    print('states have been saved')
+
+
 def copy_paste(source_folder, target_folder):
+    remove_recreate_dir(target_folder)
     # copy file
     extensions = ('.jpg', '.png')
     for image_file in os.listdir(source_folder):
@@ -113,23 +117,6 @@ def copy_paste(source_folder, target_folder):
     print(f'Copied to {target_folder}')
 
 
-def subdirs_in_path(path:str):
-    contents = os.listdir(path) # all files + directors in total
-    subdirs = [f for f in contents if os.path.isdir(os.path.join(path, f))] # pick directors in total
-    return subdirs
-
-
-def meta_prozess(folder, n):
-    d3plot = os.path.join(folder,'d3plot')
-    # meta prozess
-    new_script()
-    loaded_results(d3plot, n)
-    views = ['top', 'front', 'right','left']
-    # views = ['left']
-    for view in views:
-        save_metapost(folder,view)
-    plot_energy(folder)
-
 # delete image files in directory
 def delete_image_files(directory, extensions=(".jpg", ".png")):
     for root, dirs, files in os.walk(directory):
@@ -139,93 +126,88 @@ def delete_image_files(directory, extensions=(".jpg", ".png")):
                 os.remove(file_path)
                 print(f"delete: {file_path}")
 
-def single(car_dir,name,n,stamped):
-    folder = os.path.join(r'z:/cae_jobs',car_dir,name)
-    delete_image_files(folder)
-    meta_prozess(folder,n)
     
-    dir_in_stamped = os.path.join(stamped,car_dir,name)
-    remove_dir(dir_in_stamped)
-    copy_paste(folder, dir_in_stamped)
-    
-    
-def remove_dir(dir):
-    if not os.path.exists(dir):
-        os.makedirs(dir)
+# folder must be full path
+def single(folder, n, views:List[str]=None, redo:bool=True):
+    if redo:
+        delete_image_files(folder)
+        
+    d3plot = os.path.join(folder,'d3plot')
+    if os.path.exists(d3plot):
+        helpers.clear_all()
+        loaded_results(d3plot, n)
+        save_metapost_bestview(folder) 
+        if views:
+            for view in views:
+                save_metapost(folder,view)  # plot multi views
+        # plot_energy(folder)
     else:
+        print(f'{d3plot} not exist')
+                
+                
+def remove_recreate_dir(dir):
+    if os.path.exists(dir):
         shutil.rmtree(dir)
-        print(f'exist {dir} and delete')
-        os.mkdir(dir)    
-
-def count_visible_directory_contents(dir_path):
-    visible_contents = [f for f in os.listdir(dir_path) if not f[0] == '.']
-    return len(visible_contents)     
+        print(f'delete {dir} and recreate')
+    os.makedirs(dir)    
+        
         
 # used for simulation before sb
-def batch_1(car_dir):
-    dir = os.path.join(r'z:/cae_jobs',car_dir)
-    subdirs = subdirs_in_path(dir)
+def batch_1(car_dir, n, views:List[str]=None, redo:bool=True):
+    base_dir = os.path.join(r'E:\#chen\metool\test\befor',car_dir)
+    time_dirs = helpers.subdirs_in_path(base_dir)
     
-    subdirs_path = [item for item in subdirs if item.startswith('08')]
-    for name in subdirs_path:
-        folder = os.path.join(dir,name)
+    subdirs_path = [item for item in time_dirs if item.startswith('08')]
+    for time in subdirs_path:
+        folder = os.path.join(base_dir,time)
         print(folder)
-        num = count_visible_directory_contents(folder)
-        if num > 1:
-            # delete_image_files(folder)
-            meta_prozess(folder,n)
+
+        single(folder, n, views, redo)
             
-            stamped = os.path.join(r'd:/Users/ADMIN/Desktop/results',car_dir,name)
-            print(stamped)
-            remove_dir(stamped)
-            copy_paste(folder,stamped)
+        stamped = os.path.join(r'E:\#chen\metool\test\res',car_dir,time)
+        print(stamped)
+        copy_paste(folder,stamped)
             
+            
+# used for simulation in sb
+def batch_sb(res_path,n,views:List[str]=None,redo:bool=True):
+    base_dir = r'E:\#chen\metool\test\simu'
+    time_dirs = helpers.subdirs_in_path(base_dir)
+    print("turn to---------",time_dirs)
     
+    for time_dir in time_dirs:
+        time_fullpath = os.path.join(base_dir,time_dir)
+        cars = helpers.subdirs_in_path(time_fullpath)
+        print("car---------",cars)
+        for car in cars:
+            folder = os.path.join(base_dir,time_dir,car)
+            
+            single(folder, n, views, redo)
+            
+            dir_in_stamped = os.path.join(res_path,car,time_dir)
+            print(dir_in_stamped)
+            copy_paste(folder,dir_in_stamped)
+
 
 if __name__ == "__main__":
-    os.system('cls') 
+    time = helpers.NewScript()
     #-----------------------------
-    n = 3
+    n = 2
 
     # car_dir = 'smallcar'
     car_dir = 'bus'
     # car_dir = 'truck'
+        
+    # views = ['top', 'right', 'isometric']
+    views = ['left']
     
-    name = r'07-09_17-34_succeed'
-    stamped = r'd:/Users/ADMIN/Desktop/results'
+    res = r'E:\#chen\metool\test\res'
     #-----------------------------
-    car_dirs = ['smallcar', 'bus', 'truck']
-    for car_dir in car_dirs:
-        batch_1(car_dir)
-    #-----------------------------
-    # single(car_dir, name, n, stamped)
-    #-----------------------------
-    # # batch
-    # dir = r'z:/cae_jobs/sb'
-    
-    # subdirs = subdirs_in_path(dir)
-    # # print(subdirs)
-    
-    # for subdir in subdirs:
-    #     subdir_path = os.path.join(dir,subdir)
-    #     cars = subdirs_in_path(subdir_path)
-    #     # print(cars)
-    #     for car in cars:
-    #         folder = os.path.join(dir,subdir,car)
-    #         print(folder)
-    #         num = count_visible_directory_contents(folder)
-    #         if num > 1:
-    #             print(f'{num} files in {folder}')
-    #             # delete_image_files(folder)
-    #             meta_prozess(folder,n)
-            
-            
-    #             dir_in_stamped = os.path.join(stamped,car,subdir)
-    #             print(dir_in_stamped)
-    #             remove_dir(dir_in_stamped)
-    #             copy_paste(folder,dir_in_stamped)
+    # batch_1(car_dir,n,views)
+    batch_sb(res,n,views,True)
 
     
-    print('--------------all done---------------------')
-    
+    print('-----------all done------------')
+    #-----------------------------
+    time.end
     

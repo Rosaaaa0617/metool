@@ -1,6 +1,6 @@
 import meta
 from meta import results, utils, windows, plot2d, models, toolbars
-import os
+import os,helpers
 
 from metaLiteral import CurveOpts
 
@@ -19,12 +19,6 @@ def dirs_in_path(path:str):
     contents = os.listdir(path) # all files + directors in total
     subdirs = [f for f in contents if os.path.isdir(os.path.join(path, f))] # pick directors in total
     return subdirs
-
-def new_script():
-    utils.MetaCommand('window clearcreate 3d keepses')
-    utils.MetaCommand('report clear all')
-    utils.MetaCommand('spreadsheet clearall')
-    utils.MetaCommand('spreadsheet windows deleteall')
 
 
 def plot_energy(d3plot):
@@ -56,12 +50,7 @@ def plot_energy(d3plot):
     
     
     # set axis title
-    yaxis = plot2d.PlotAxis(id=0, type="yaxis", plot_id=0, window_name=window_name, page_id=0)
-    title = "Energy"
-    yaxis.set_title(title)
-    xaxis = plot2d.PlotAxis(id=0, type="xaxis", plot_id=0, window_name=window_name, page_id=0)
-    title = "Time"
-    xaxis.set_title(title)
+    helpers.axis_title(window_name,"Time","Energy")
     
     # output window
     utils.MetaCommand(f'write jpeg "{output}" 85')
@@ -79,7 +68,7 @@ def main():
             d3plot.extend(find_dyna_files(subdir_path))
     
     for d in d3plot:
-        new_script()
+        helpers.new_script()
         plot_energy(d)
 
                
@@ -97,6 +86,6 @@ if __name__ == "__main__":
             subdir_path = os.path.join(path,subdir)
             d3plot.extend(find_dyna_files(subdir_path))
             
-    new_script()
+    helpers.new_script()
     plot_energy(d3plot[0])
                 
